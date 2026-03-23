@@ -1,0 +1,21 @@
+<Bindings>
+  <Binding name="CUSTOMLUST_TOGGLE_PANEL" category="CustomLust">
+    SlashCmdList["CUSTOMLUST"]()
+  </Binding>
+
+  <Binding name="CUSTOMLUST_PREVIEW" category="CustomLust">
+    if CustomLustOptionsFrame and CustomLustOptionsFrame:IsShown() then
+      -- do nothing, user can click Preview
+    end
+    if CustomLustEffectFrame then
+      -- call preview directly if core loaded
+      if CustomLustDB and CustomLustDB.enabled and CustomLustEffectFrame then
+        -- call addon preview (exposed via namespace)
+        if _G.CustomLustEffectFrame and _G.CustomLustEffectFrame:IsShown() then
+          -- ignore
+        end
+      end
+    end
+    if (select(2, ...)) then end
+  </Binding>
+</Bindings>

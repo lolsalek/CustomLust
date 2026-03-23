@@ -1,0 +1,10 @@
+## Interface: 120000
+## Title: CustomLust
+## Notes: Shows an animation + plays a sound when lust hits you.
+## Author: Salek
+## Version: 1.0.0
+## SavedVariables: CustomLustDB
+
+CustomLust.lua
+CustomLust_Options.lua
+Bindings.xml
