@@ -111,6 +111,18 @@ local LUST_NAMES = {
   [NormalizeName("Drums of the Mountain")] = true,
 }
 
+-- Sated-like debuff IDs that are NOT private in combat (unlike lust buffs in Midnight).
+-- If any of these are on the player, a lust effect was recently cast.
+local SATED_DEBUFF_IDS = {
+  [57723]  = true, -- Exhaustion        (Heroism)
+  [57724]  = true, -- Sated             (Bloodlust)
+  [80354]  = true, -- Temporal Displacement (Time Warp)
+  [95809]  = true, -- Insanity           (Hunter pet Bloodlust)
+  [160455] = true, -- Fatigued           (Hunter pet, variant 1)
+  [264689] = true, -- Fatigued           (Hunter pet, variant 2)
+  [390435] = true, -- Exhaustion         (Evoker Fury)
+}
+
 local function EnsureNonEmptySpellList()
   if type(CustomLustDB.lustBuffSpellIds) ~= "table" or #CustomLustDB.lustBuffSpellIds == 0 then
     CustomLustDB.lustBuffSpellIds = {}
@@ -449,32 +461,44 @@ local function FindActiveTriggerAura()
     return false, nil, nil, nil
   end
 
-  -- Modern retail API
+  -- Modern retail API (C_UnitAuras)
   if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-    local i = 1
+    -- 2) Scan HARMFUL auras for sated-like debuffs.
+    --    These debuffs (Sated, Exhaustion, Temporal Displacement, etc.) are NOT
+    --    private in combat, so they are always visible even under the Midnight
+    --    aura restrictions. If present, a lust effect was just cast on the player.
+    i = 1
     while true do
-      local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+      local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HARMFUL")
       if not aura then break end
 
-      local sid = aura.spellId
-      local nm  = NormalizeName(aura.name)
-
-      if (sid and NS.BUFF_SET_IDS[sid]) or (nm and NS.BUFF_SET_NAMES[nm]) then
-        return true, aura.expirationTime, sid, aura.name
+      if aura.spellId and SATED_DEBUFF_IDS[aura.spellId] then
+        return true, aura.expirationTime, aura.spellId, aura.name
       end
 
       i = i + 1
     end
+
     return false, nil, nil, nil
   end
 
-  -- Fallback (older): UnitBuff
+  -- Fallback (older clients / Classic): UnitBuff + UnitDebuff
   for i = 1, 40 do
     local name, _, _, _, _, expTime, _, _, _, spellId = UnitBuff("player", i)
     if not name then break end
 
     local nm = NormalizeName(name)
     if (spellId and NS.BUFF_SET_IDS[spellId]) or (nm and NS.BUFF_SET_NAMES[nm]) then
+      return true, expTime, spellId, name
+    end
+  end
+
+  -- Also check debuffs on the fallback path for sated effects
+  for i = 1, 40 do
+    local name, _, _, _, _, expTime, _, _, _, spellId = UnitDebuff("player", i)
+    if not name then break end
+
+    if spellId and SATED_DEBUFF_IDS[spellId] then
       return true, expTime, spellId, name
     end
   end
@@ -548,6 +572,7 @@ end
 
 local function DumpAllHelpfulAuras()
   if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+    Print("-- HELPFUL auras --")
     local i = 1
     while true do
       local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
@@ -556,11 +581,29 @@ local function DumpAllHelpfulAuras()
       i = i + 1
       if i > 80 then break end -- safety
     end
+
+    Print("-- HARMFUL auras (sated-like debuffs highlighted) --")
+    i = 1
+    while true do
+      local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HARMFUL")
+      if not aura then break end
+      local tag = (aura.spellId and SATED_DEBUFF_IDS[aura.spellId]) and " <-- SATED" or ""
+      Print(("[%02d] %s (spellId: %s)%s"):format(i, tostring(aura.name), tostring(aura.spellId), tag))
+      i = i + 1
+      if i > 80 then break end -- safety
+    end
   else
     for i = 1, 40 do
       local name, _, _, _, _, _, _, _, _, spellId = UnitAura("player", i, "HELPFUL")
       if not name then break end
       Print(("[%02d] %s (spellId: %s)"):format(i, tostring(name), tostring(spellId)))
+    end
+    Print("-- HARMFUL (debuffs) --")
+    for i = 1, 40 do
+      local name, _, _, _, _, _, _, _, _, spellId = UnitAura("player", i, "HARMFUL")
+      if not name then break end
+      local tag = (spellId and SATED_DEBUFF_IDS[spellId]) and " <-- SATED" or ""
+      Print(("[%02d] %s (spellId: %s)%s"):format(i, tostring(name), tostring(spellId), tag))
     end
   end
 
