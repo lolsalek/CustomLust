@@ -2,7 +2,7 @@
 ## Title: CustomLust
 ## Notes: Shows an animation + plays a sound when lust hits you.
 ## Author: Salek
-## Version: 0.3.0
+## Version: 1.2.0
 ## X-Wago-ID: YK9b1lGL
 
 ## SavedVariables: CustomLustDB
