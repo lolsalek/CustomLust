@@ -136,10 +136,13 @@ local function BuildBuffSets()
     if type(id) == "number" then
       NS.BUFF_SET_IDS[id] = true
 
-      local spellName = GetSpellInfo(id)
-      spellName = NormalizeName(spellName)
-      if spellName and spellName ~= "" then
-        NS.BUFF_SET_NAMES[spellName] = true
+      local spellName
+      if C_Spell and C_Spell.GetSpellInfo then
+        local info = C_Spell.GetSpellInfo(id)
+        spellName = info and info.name
+      elseif GetSpellInfo then
+        -- Legacy path for Classic / pre-11.0 clients
+        spellName = GetSpellInfo(id)
       end
     end
   end
