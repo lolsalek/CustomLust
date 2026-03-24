@@ -523,12 +523,10 @@ local function FindActiveTriggerAura()
 end
 
 local function ScheduleStop(expirationTime)
-    Print("Expiration Time:" .. expirationTime)
     stopTimerId = stopTimerId + 1
     local myId = stopTimerId
     if not (expirationTime and expirationTime > 0) then return end
     local remaining = math.min(expirationTime - GetTime(), MAX_LUST_DISPLAY_SECONDS)
-    Print("Remaining:" .. remaining)
     if remaining <= 0 then return end
 
     C_Timer.After(remaining + 0.05, function()
