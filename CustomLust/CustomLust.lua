@@ -479,11 +479,16 @@ local function FindActiveTriggerAura()
                 break
             end
 
-            if aura.spellId and SATED_DEBUFF_IDS[aura.spellId] then
-                if not IsSatedFresh(aura.expirationTime) then
+            -- aura.spellId may be a "secret" userdata for restricted auras;
+            -- using it as a table key throws "table index is secret".
+            -- pcall safely skips those auras.
+            local ok, isSated = pcall(function() return SATED_DEBUFF_IDS[aura.spellId] end)
+            if ok and isSated then
+                local expTime = aura.expirationTime
+                if not IsSatedFresh(expTime) then
                     return false, nil, nil, nil -- debuff is old; lust window has passed
                 end
-                return true, aura.expirationTime, aura.spellId, aura.name
+                return true, expTime, aura.spellId, aura.name
             end
 
             i = i + 1
