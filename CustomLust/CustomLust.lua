@@ -43,6 +43,17 @@ local DEFAULTS = {
         y = 0
     },
 
+    satedBuffSpellIds = {57723, -- Exhaustion        (Heroism)
+    57724, -- Sated             (Bloodlust)
+    80354, -- Temporal Displacement (Time Warp)
+    95809, -- Insanity           (Hunter pet Bloodlust)
+    160455, -- Fatigued           (Hunter pet, variant 1)
+    264689, -- Fatigued           (Hunter pet, variant 2)
+    390435 -- Exhaustion         (Evoker Fury)
+    },
+
+    satedBuffNames = {"Exhaustion", "Sated", "Temporal Displacement", "Insanity", "Fatigued"},
+
     -- IDs based on your WA + common lusts
     lustBuffSpellIds = {2825, -- Bloodlust
     32182, -- Heroism
@@ -115,10 +126,10 @@ local SATED_DEBUFF_IDS = {
 }
 
 local function EnsureNonEmptySpellList()
-    if type(CustomLustDB.lustBuffSpellIds) ~= "table" or #CustomLustDB.lustBuffSpellIds == 0 then
-        CustomLustDB.lustBuffSpellIds = {}
-        for _, id in ipairs(DEFAULTS.lustBuffSpellIds) do
-            table.insert(CustomLustDB.lustBuffSpellIds, id)
+    if type(CustomLustDB.satedBuffSpellIds) ~= "table" or #CustomLustDB.satedBuffSpellIds == 0 then
+        CustomLustDB.satedBuffSpellIds = {}
+        for _, id in ipairs(DEFAULTS.satedBuffSpellIds) do
+            table.insert(CustomLustDB.satedBuffSpellIds, id)
         end
     end
 end
@@ -126,18 +137,18 @@ end
 local function BuildBuffSets()
     EnsureNonEmptySpellList()
 
-    NS.BUFF_SET_IDS = {}
-    NS.BUFF_SET_NAMES = {}
+    NS.SATED_SET_IDS = {}
+    NS.SATED_SET_NAMES = {}
 
     -- 1) Hard fallback names
     for n in pairs(LUST_NAMES) do
-        NS.BUFF_SET_NAMES[n] = true
+        NS.SATED_SET_NAMES[n] = true
     end
 
     -- 2) SpellIDs + localized spell names (from the ID)
-    for _, id in ipairs(CustomLustDB.lustBuffSpellIds or {}) do
+    for _, id in ipairs(CustomLustDB.satedBuffSpellIds or {}) do
         if type(id) == "number" then
-            NS.BUFF_SET_IDS[id] = true
+            NS.SATED_SET_IDS[id] = true
 
             local spellName
             if C_Spell and C_Spell.GetSpellInfo then
@@ -151,19 +162,19 @@ local function BuildBuffSets()
     end
 
     -- 3) Optional extra fallback names (user list)
-    for _, n in ipairs(CustomLustDB.lustBuffNames or {}) do
+    for _, n in ipairs(CustomLustDB.satedBuffNames or {}) do
         n = NormalizeName(n)
         if n and n ~= "" then
-            NS.BUFF_SET_NAMES[n] = true
+            NS.SATED_SET_NAMES[n] = true
         end
     end
 
     if CustomLustDB.debug then
         local idCount, nameCount = 0, 0
-        for _ in pairs(NS.BUFF_SET_IDS) do
+        for _ in pairs(NS.SATED_SET_IDS) do
             idCount = idCount + 1
         end
-        for _ in pairs(NS.BUFF_SET_NAMES) do
+        for _ in pairs(NS.SATED_SET_NAMES) do
             nameCount = nameCount + 1
         end
         Print(("Tracking IDs: %d | Tracking names: %d"):format(idCount, nameCount))
@@ -350,14 +361,9 @@ end
 function NS.ApplyVisuals()
     Effect:SetSize(CustomLustDB.size, CustomLustDB.size)
 
-    -- hard-code sprite mode ON (as requested)
-    CustomLustDB.useSpriteSheet = true
-
     local imgOn = (CustomLustDB.imageEnabled ~= false)
     Tex:SetTexture(imgOn and CustomLustDB.imagePath or nil)
     Tex:SetAlpha(imgOn and 1 or 0)
-
-    Tex:SetTexture(CustomLustDB.imagePath)
 
     local a = tonumber(CustomLustDB.alpha) or 1
     if a < 0.10 then
@@ -462,7 +468,7 @@ local function IsSatedFresh(expirationTime)
 end
 
 local function FindActiveTriggerAura()
-    if not NS.BUFF_SET_IDS or not NS.BUFF_SET_NAMES then
+    if not NS.SATED_SET_IDS or not NS.SATED_SET_NAMES then
         return false, nil, nil, nil
     end
 
@@ -480,9 +486,9 @@ local function FindActiveTriggerAura()
             end
 
             -- aura.spellId may be a "secret" userdata for restricted auras;
-            -- using it as a table key throws "table index is secret".
-            -- pcall safely skips those auras.
-            local ok, isSated = pcall(function() return SATED_DEBUFF_IDS[aura.spellId] end)
+            local ok, isSated = pcall(function()
+                return SATED_DEBUFF_IDS[aura.spellId]
+            end)
             if ok and isSated then
                 local expTime = aura.expirationTime
                 if not IsSatedFresh(expTime) then
@@ -505,7 +511,7 @@ local function FindActiveTriggerAura()
         end
 
         local nm = NormalizeName(name)
-        if (spellId and NS.BUFF_SET_IDS[spellId]) or (nm and NS.BUFF_SET_NAMES[nm]) then
+        if (spellId and NS.SATED_SET_IDS[spellId]) or (nm and NS.SATED_SET_NAMES[nm]) then
             return true, expTime, spellId, name
         end
     end
@@ -530,19 +536,23 @@ end
 local function ScheduleStop(expirationTime)
     stopTimerId = stopTimerId + 1
     local myId = stopTimerId
-    if not (expirationTime and expirationTime > 0) then return end
+    if not (expirationTime and expirationTime > 0) then
+        return
+    end
     local remaining = math.min(expirationTime - GetTime(), MAX_LUST_DISPLAY_SECONDS)
-    if remaining <= 0 then return end
+    if remaining <= 0 then
+        return
+    end
 
     C_Timer.After(remaining + 0.05, function()
-                if myId ~= stopTimerId then
-                    return
-                end
-                active = false
-                if not previewActive then
-                    StopEffect()
-                end
-            end)
+        if myId ~= stopTimerId then
+            return
+        end
+        active = false
+        if not previewActive then
+            StopEffect()
+        end
+    end)
 end
 
 local function OnAuraChanged()
@@ -573,10 +583,10 @@ end
 
 local function DumpTrackedAuras()
     local idCount, nameCount = 0, 0
-    for _ in pairs(NS.BUFF_SET_IDS or {}) do
+    for _ in pairs(NS.SATED_SET_IDS or {}) do
         idCount = idCount + 1
     end
-    for _ in pairs(NS.BUFF_SET_NAMES or {}) do
+    for _ in pairs(NS.SATED_SET_NAMES or {}) do
         nameCount = nameCount + 1
     end
     Print(("Tracking IDs: %d | Tracking names: %d"):format(idCount, nameCount))
@@ -585,7 +595,7 @@ local function DumpTrackedAuras()
     if has then
         Print(("MATCH RIGHT NOW: %s (spellId: %s) exp=%s"):format(tostring(nm), tostring(sid), tostring(exp)))
     else
-        Print("No tracked lust buffs found on you right now.")
+        Print("No tracked sated buffs found on you right now.")
         Print("Tip: With Time Warp active, run /customlustdumpall to list ALL your HELPFUL auras.")
     end
 

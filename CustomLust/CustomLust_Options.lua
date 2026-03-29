@@ -1,7 +1,7 @@
 local ADDON_NAME, NS = ...
 
 -- ============================================================
--- Helpers
+-- Utils
 -- ============================================================
 local function Print(msg)
   if NS and NS.Print then NS.Print(msg) end
@@ -11,12 +11,8 @@ local function Apply()
   if NS and NS.ApplyVisuals then NS.ApplyVisuals() end
 end
 
-local function Clamp(n, lo, hi)
-  n = tonumber(n)
-  if not n then return lo end
-  if n < lo then return lo end
-  if n > hi then return hi end
-  return n
+local function Clamp(num, min_val, max_val)
+    return math.max(min_val, math.min(max_val, tonumber(num) or 0))
 end
 
 local function Round(n)
@@ -33,7 +29,7 @@ local VERSION =
   or "Unknown"
 
 -- ============================================================
--- Shell (ElvUI-ish)
+-- UI
 -- ============================================================
 local UI = CreateFrame("Frame", "CustomLustOptionsFrame", UIParent, "BackdropTemplate")
 UI:SetSize(720, 720)   -- taller to fit sound + image sections
@@ -47,8 +43,8 @@ UI:SetBackdrop({
   tile = true, tileSize = 8, edgeSize = 12,
   insets = { left = 8, right = 8, top = 8, bottom = 8 },
 })
-UI:SetBackdropColor(0.06, 0.06, 0.07, 0.95)
-UI:SetBackdropBorderColor(1, 1, 1, 0.15)
+UI:SetBackdropColor(0.047, 0.047, 0.047, 0.95)
+UI:SetBackdropBorderColor(0.427, 0.651, 0.949, 0.20)
 
 local close = CreateFrame("Button", nil, UI, "UIPanelCloseButton")
 close:SetPoint("TOPRIGHT", -6, -6)
@@ -59,7 +55,7 @@ header:SetPoint("TOPLEFT", 10, -10)
 header:SetPoint("TOPRIGHT", -10, -10)
 header:SetHeight(42)
 header:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
-header:SetBackdropColor(0.10, 0.10, 0.12, 0.95)
+header:SetBackdropColor(0.016, 0.294, 0.847, 0.95)
 
 local title = header:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 title:SetPoint("LEFT", 12, 0)
@@ -67,7 +63,7 @@ title:SetText("CustomLust")
 
 local byline = header:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 byline:SetPoint("LEFT", title, "RIGHT", 8, -2)
-byline:SetText("|cffbbbbbbby Salek|r")
+byline:SetText("|cff6DA7F2by Salek|r")
 
 local sub = header:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 sub:SetPoint("LEFT", byline, "RIGHT", 12, -2)
@@ -87,18 +83,18 @@ sidebar:SetPoint("TOPLEFT", 10, -56)
 sidebar:SetPoint("BOTTOMLEFT", 10, 10)
 sidebar:SetWidth(160)
 sidebar:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
-sidebar:SetBackdropColor(0.09, 0.09, 0.10, 0.95)
+sidebar:SetBackdropColor(0.012, 0.221, 0.635, 0.95)
 
 -- Content area
 local content = CreateFrame("Frame", nil, UI, "BackdropTemplate")
 content:SetPoint("TOPLEFT", sidebar, "TOPRIGHT", 10, 0)
 content:SetPoint("BOTTOMRIGHT", -10, 10)
 content:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8" })
-content:SetBackdropColor(0.08, 0.08, 0.09, 0.95)
+content:SetBackdropColor(0.055, 0.060, 0.090, 0.95)
 
 local function MakeLine(parent, a1, a2)
   local line = parent:CreateTexture(nil, "ARTWORK")
-  line:SetColorTexture(1, 1, 1, 0.07)
+  line:SetColorTexture(0.294, 0.576, 0.949, 0.20)
   line:SetPoint(unpack(a1))
   line:SetPoint(unpack(a2))
   line:SetHeight(1)
@@ -186,14 +182,14 @@ local function MakeEditBox(parent, x, y, w, h)
     tile     = true, tileSize = 8, edgeSize = 10,
     insets   = { left = 3, right = 3, top = 3, bottom = 3 },
   })
-  eb:SetBackdropColor(0.05, 0.05, 0.06, 0.95)
-  eb:SetBackdropBorderColor(0.4, 0.4, 0.45, 0.9)
+  eb:SetBackdropColor(0.047, 0.047, 0.047, 0.95)
+  eb:SetBackdropBorderColor(0.067, 0.404, 0.847, 0.9)
 
   eb:SetScript("OnEditFocusGained", function(self)
-    self:SetBackdropBorderColor(0.4, 0.7, 1.0, 1.0)
+    self:SetBackdropBorderColor(0.294, 0.576, 0.949, 1.0)
   end)
   eb:SetScript("OnEditFocusLost", function(self)
-    self:SetBackdropBorderColor(0.4, 0.4, 0.45, 0.9)
+    self:SetBackdropBorderColor(0.067, 0.404, 0.847, 0.9)
     self:HighlightText(0, 0)
   end)
   eb:SetScript("OnEscapePressed", function(self)
@@ -223,7 +219,11 @@ local function SetTab(name)
   for k, b in pairs(tabButtons) do
     b.selected = (k == name)
     b.bg:SetAlpha(b.selected and 0.18 or 0.0)
-    b.text:SetTextColor(b.selected and 0.25 or 1, b.selected and 0.85 or 1, b.selected and 1 or 1)
+    b.text:SetTextColor(
+      b.selected and 0.047 or 0.427,
+      b.selected and 0.047 or 0.651,
+      b.selected and 0.047 or 0.949
+    )
   end
   pages[name]:Show()
   activeTab = name
@@ -237,7 +237,7 @@ local function TabButton(text, y, key)
 
   b.bg = b:CreateTexture(nil, "BACKGROUND")
   b.bg:SetAllPoints()
-  b.bg:SetColorTexture(0.35, 0.55, 1.0, 1.0)
+  b.bg:SetColorTexture(0.016, 0.294, 0.847, 1.0)
   b.bg:SetAlpha(0.0)
 
   b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -298,7 +298,7 @@ alphaValueText:SetText("")
 
 -- Section divider
 local soundDivider = pG:CreateTexture(nil, "ARTWORK")
-soundDivider:SetColorTexture(1, 1, 1, 0.07)
+soundDivider:SetColorTexture(0.294, 0.576, 0.949, 0.20)
 soundDivider:SetPoint("TOPLEFT", CX, CY - 320)
 soundDivider:SetPoint("TOPRIGHT", -CX, CY - 320)
 soundDivider:SetHeight(1)
@@ -352,7 +352,7 @@ UIDropDownMenu_Initialize(channelDropdown, ChannelDropdown_Initialize)
 
 -- Section divider
 local imageDivider = pG:CreateTexture(nil, "ARTWORK")
-imageDivider:SetColorTexture(1, 1, 1, 0.07)
+imageDivider:SetColorTexture(0.294, 0.576, 0.949, 0.20)
 imageDivider:SetPoint("TOPLEFT", CX, CY - 468)
 imageDivider:SetPoint("TOPRIGHT", -CX, CY - 468)
 imageDivider:SetHeight(1)
@@ -369,30 +369,31 @@ Hint(pG,
 )
 
 -- EditBox for the image path
-local imagePathBox = MakeEditBox(pG, CX, CY - 548, 370, 22)
+local imagePathBox = MakeEditBox(pG, CX, CY - 548, 340, 22)
 
--- Small thumbnail preview to the right of the box
+-- Apply image button
+local btnApplyImage = Button(pG, "Apply Image", CX + 348, CY - 548, 90, 22)
+
+-- Reset image to default button
+local btnResetImage = Button(pG, "Reset Default", CX + 348, CY - 574, 90, 22)
+
+-- Small thumbnail preview to the right of the buttons
 local imgPreviewBorder = CreateFrame("Frame", nil, pG, "BackdropTemplate")
 imgPreviewBorder:SetSize(52, 52)
-imgPreviewBorder:SetPoint("TOPLEFT", CX + 484, CY - 552)
+imgPreviewBorder:SetPoint("TOPLEFT", CX + 446, CY - 552)
 imgPreviewBorder:SetBackdrop({
   bgFile   = "Interface\\Buttons\\WHITE8X8",
   edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
   tile = true, tileSize = 8, edgeSize = 10,
   insets = { left = 3, right = 3, top = 3, bottom = 3 },
 })
-imgPreviewBorder:SetBackdropColor(0.05, 0.05, 0.06, 0.95)
-imgPreviewBorder:SetBackdropBorderColor(0.4, 0.4, 0.45, 0.9)
+imgPreviewBorder:SetBackdropColor(0.047, 0.047, 0.047, 0.95)
+imgPreviewBorder:SetBackdropBorderColor(0.067, 0.404, 0.847, 0.9)
 
 local imgPreviewTex = imgPreviewBorder:CreateTexture(nil, "ARTWORK")
-imgPreviewTex:SetPoint("TOPLEFT", 4, -4)
-imgPreviewTex:SetPoint("BOTTOMRIGHT", -4, 4)
-
--- Apply image button
-local btnApplyImage = Button(pG, "Apply Image", CX + 380, CY - 548, 100, 22)
-
--- Reset image to default button
-local btnResetImage = Button(pG, "Reset Default", CX + 380, CY - 574, 100, 22)
+imgPreviewTex:SetPoint("TOPLEFT", imgPreviewBorder, "TOPLEFT", 4, -4)
+imgPreviewTex:SetPoint("BOTTOMRIGHT", imgPreviewBorder, "BOTTOMRIGHT", -4, 4)
+imgPreviewTex:SetTexCoord(0, 1, 0, 1)
 
 -- ============================================================
 -- Debug
@@ -520,7 +521,8 @@ end
 local function RefreshImageThumbnail(path)
   if path and path ~= "" then
     imgPreviewTex:SetTexture(path)
-    imgPreviewBorder:SetBackdropBorderColor(0.4, 0.4, 0.45, 0.9)
+    imgPreviewTex:SetTexCoord(0, 1, 0, 1)
+    imgPreviewBorder:SetBackdropBorderColor(0.067, 0.404, 0.847, 0.9)
   else
     imgPreviewTex:SetTexture(nil)
   end
@@ -684,7 +686,7 @@ end)
 
 -- Also commit when focus is lost so typing then clicking works naturally
 soundPathBox:SetScript("OnEditFocusLost", function(self)
-  self:SetBackdropBorderColor(0.4, 0.4, 0.45, 0.9)
+  self:SetBackdropBorderColor(0.067, 0.404, 0.847, 0.9)
   self:HighlightText(0, 0)
   CommitSoundPath()
 end)
@@ -721,7 +723,7 @@ imagePathBox:SetScript("OnEnterPressed", function(self)
 end)
 
 imagePathBox:SetScript("OnEditFocusLost", function(self)
-  self:SetBackdropBorderColor(0.4, 0.4, 0.45, 0.9)
+  self:SetBackdropBorderColor(0.067, 0.404, 0.847, 0.9)
   self:HighlightText(0, 0)
   CommitImagePath()
 end)
