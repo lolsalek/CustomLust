@@ -596,18 +596,18 @@ local function DumpTrackedAuras()
         Print(("MATCH RIGHT NOW: %s (spellId: %s) exp=%s"):format(tostring(nm), tostring(sid), tostring(exp)))
     else
         Print("No tracked sated buffs found on you right now.")
-        Print("Tip: With Time Warp active, run /customlustdumpall to list ALL your HELPFUL auras.")
+        Print("Tip: With Time Warp active, run /customlustdumpall to list ALL your HARMFUL auras.")
     end
 
     Print("---- end dump ----")
 end
 
-local function DumpAllHelpfulAuras()
+local function DumpAllHarmfulAuras()
     if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-        Print("-- HELPFUL auras --")
+        Print("-- HARMFUL auras --")
         local i = 1
         while true do
-            local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+            local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HARMFUL")
             if not aura then
                 break
             end
@@ -658,7 +658,7 @@ SLASH_CUSTOMLUSTDUMP1 = "/customlustdump"
 SlashCmdList.CUSTOMLUSTDUMP = DumpTrackedAuras
 
 SLASH_CUSTOMLUSTDUMPALL1 = "/customlustdumpall"
-SlashCmdList.CUSTOMLUSTDUMPALL = DumpAllHelpfulAuras
+SlashCmdList.CUSTOMLUSTDUMPALL = DumpAllHarmfulAuras
 
 -- ============================================================
 -- Events
