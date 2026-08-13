@@ -2,7 +2,7 @@
 ## Title: CustomLust
 ## Notes: Shows an animation + plays a sound when lust is active.
 ## Author: Salek
-## Version: 1.3.2
+## Version: 2.0.0
 ## X-Wago-ID: YK9b1lGL
 ## X-Curse-Project-ID: 1500609
 

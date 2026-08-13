@@ -473,31 +473,17 @@ local function FindActiveTriggerAura()
     end
 
     -- Modern retail API (C_UnitAuras)
-    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
-        --    Scan HARMFUL auras for sated-like debuffs.
-        --    These debuffs (Sated, Exhaustion, Temporal Displacement, etc.) are NOT
-        --    private in combat, so they are always visible even under the Midnight
-        --    aura restrictions. If present, a lust effect was just cast on the player.
-        local i = 1
-        while true do
-            local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HARMFUL")
-            if not aura then
-                break
-            end
-
-            -- aura.spellId may be a "secret" userdata for restricted auras;
-            local ok, isSated = pcall(function()
-                return SATED_DEBUFF_IDS[aura.spellId]
-            end)
-            if ok and isSated then
+    if C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
+        for id in pairs(SATED_DEBUFF_IDS) do
+            local aura = C_UnitAuras.GetPlayerAuraBySpellID(id)
+            
+            if aura then
+                DevTool:AddData(aura, "SATED AURA FOUND")
                 local expTime = aura.expirationTime
-                if not IsSatedFresh(expTime) then
-                    return false, nil, nil, nil -- debuff is old; lust window has passed
+                if IsSatedFresh(expTime) then
+                    return true, expTime, aura.spellId, aura.name
                 end
-                return true, expTime, aura.spellId, aura.name
             end
-
-            i = i + 1
         end
 
         return false, nil, nil, nil
@@ -563,8 +549,8 @@ local function OnAuraChanged()
             active = true
             StartEffect()
 
-            if CustomLustDB.debug then
-                Print(("Triggered by: %s (spellId: %s)"):format(tostring(foundName), tostring(foundSpellId)))
+            if CustomLustDB.debug and DevTool then
+                DevTool:AddData(("Triggered by: %s (spellId: %s)"):format(tostring(foundName), tostring(foundSpellId)), "CustomLust Triggered")
             end
         end
         ScheduleStop(expirationTime)
@@ -596,45 +582,24 @@ local function DumpTrackedAuras()
         Print(("MATCH RIGHT NOW: %s (spellId: %s) exp=%s"):format(tostring(nm), tostring(sid), tostring(exp)))
     else
         Print("No tracked sated buffs found on you right now.")
-        Print("Tip: With Time Warp active, run /customlustdumpall to list ALL your HARMFUL auras.")
+        Print("Tip: With a Lust effect active and out of combat, run /customlustdumpall to list ALL your HARMFUL auras.")
     end
 
     Print("---- end dump ----")
 end
 
 local function DumpAllHarmfulAuras()
-    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+    if C_UnitAuras and C_UnitAuras.GetUnitAuras then
         Print("-- HARMFUL auras --")
-        local i = 1
-        while true do
-            local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HARMFUL")
-            if not aura then
-                break
+        local auras = C_UnitAuras.GetUnitAuras("player", "HARMFUL") or {}
+        if auras then
+            for aura in auras do
+                DevTool:AddData(aura, "SATED AURAS DUMP")
             end
-            Print(("[%02d] %s (spellId: %s)"):format(i, tostring(aura.name), tostring(aura.spellId)))
-            i = i + 1
-            if i > 80 then
-                break
-            end -- safety
-        end
-
-        Print("-- HARMFUL auras (sated-like debuffs highlighted) --")
-        i = 1
-        while true do
-            local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HARMFUL")
-            if not aura then
-                break
-            end
-            local tag = (aura.spellId and SATED_DEBUFF_IDS[aura.spellId]) and " <-- SATED" or ""
-            Print(("[%02d] %s (spellId: %s)%s"):format(i, tostring(aura.name), tostring(aura.spellId), tag))
-            i = i + 1
-            if i > 80 then
-                break
-            end -- safety
         end
     else
         for i = 1, 40 do
-            local name, _, _, _, _, _, _, _, _, spellId = UnitAura("player", i, "HELPFUL")
+            local name, _, _, _, _, _, _, _, _, spellId = UnitAura("player", i, "HARMFUL")
             if not name then
                 break
             end
