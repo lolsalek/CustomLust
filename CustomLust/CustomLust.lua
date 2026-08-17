@@ -478,7 +478,7 @@ local function FindActiveTriggerAura()
             local aura = C_UnitAuras.GetPlayerAuraBySpellID(id)
             
             if aura then
-                DevTool:AddData(aura, "SATED AURA FOUND")
+                if DevTool then DevTool:AddData(aura, "SATED AURA FOUND") end
                 local expTime = aura.expirationTime
                 if IsSatedFresh(expTime) then
                     return true, expTime, aura.spellId, aura.name
@@ -594,7 +594,11 @@ local function DumpAllHarmfulAuras()
         local auras = C_UnitAuras.GetUnitAuras("player", "HARMFUL") or {}
         if auras then
             for aura in auras do
-                DevTool:AddData(aura, "SATED AURAS DUMP")
+                if DevTool then 
+                    DevTool:AddData(aura, "SATED AURAS DUMP")
+                else 
+                    Print(("[%02d] %s (spellId: %s)"):format(i, tostring(aura.name), tostring(aura.spellId)))
+                 end
             end
         end
     else
